@@ -47,7 +47,7 @@ jobs:
       - name: Compress images
         id: compress
         run: |
-          zip -9 PMOS.zip lk2nd.img qcom-msm8953.img
+          zip -9 -v PMOS.zip lk2nd.img qcom-msm8953.img
         shell: bash
 
       - name: Create Release Info
