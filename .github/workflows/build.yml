@@ -38,7 +38,7 @@ jobs:
       - name: Build image
         id: build
         run: |
-          yes '${{ env.UserPass }}' | pmbootstrap install || true
+          printf '%s\n%s\n' "${{ env.UserPass }}" "${{ env.UserPass }}" | pmbootstrap install || true
           pmbootstrap shutdown
           sudo mv ~/.local/var/pmbootstrap/chroot_rootfs_qcom-msm8953/boot/lk2nd.img ~/lk2nd.img
           sudo mv ~/.local/var/pmbootstrap/chroot_native/home/pmos/rootfs/qcom-msm8953.img ~/qcom-msm8953.img
