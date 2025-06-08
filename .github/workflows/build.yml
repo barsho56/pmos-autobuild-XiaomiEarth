@@ -32,3 +32,12 @@ jobs:
           sudo apt install kpartx -y
           yes '' | pmbootstrap init || true
         shell: bash
+
+      - name: Build image
+        id: build
+        run: |
+          yes '000' | pmbootstrap install || true
+          pmbootstrap shutdown
+          sudo mv ~/.local/var/pmbootstrap/chroot_rootfs_qcom-msm8953/boot/lk2nd.img ~/lk2nd.img
+          sudo mv ~/.local/var/pmbootstrap/chroot_native/home/pmos/rootfs/qcom-msm8953.img ~/qcom-msm8953.img
+        shell: bash
