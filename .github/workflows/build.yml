@@ -2,6 +2,8 @@ name: Build
 
 on:
   workflow_dispatch: {} # Enables the manual start
+  schedule:
+    - cron: '0 0 * * WED' # Start every wednesday
 
 permissions:
   contents: write # Give permission to put the release into the repo
@@ -11,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      UserPass: '000' # Its password for pmos user
+      UserPass: '000' # It's password for pmos user
 
     steps:
       - name: Checkout code
@@ -75,4 +77,3 @@ jobs:
           body_path: release_body.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
