@@ -1,0 +1,25 @@
+name: Build
+
+on:
+  workflow_dispatch: {} # Enables the manual start
+
+permissions:
+  contents: write # Give permission to put the release into the repo
+
+jobs:
+  build-clients:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pmbootstrap
+        id: instpmb
+        run: |
+          git clone https://gitlab.postmarketos.org/postmarketOS/pmbootstrap.git
+          mkdir -p ~/.local/bin
+          ln -s "$PWD/pmbootstrap/pmbootstrap.py" ~/.local/bin/pmbootstrap
+          PATH="$HOME/.local/bin:$PATH"
+          pmbootstrap --version
+        shell: bash
