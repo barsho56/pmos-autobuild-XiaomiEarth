@@ -23,3 +23,12 @@ jobs:
           PATH="$HOME/.local/bin:$PATH"
           pmbootstrap --version
         shell: bash
+
+      - name: Copy config and init pmbootstrap
+        id: init
+        run: |
+          mkdir -p ~/.config
+          cp pmbootstrap_v3.cfg ~/.config/
+          sudo apt install kpartx -y
+          yes '' | pmbootstrap init || true
+        shell: bash
