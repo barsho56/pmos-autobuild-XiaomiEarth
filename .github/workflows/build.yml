@@ -10,6 +10,9 @@ jobs:
   build-clients:
     runs-on: ubuntu-latest
 
+    env:
+      UserPass: '000' # Its password for pmos user
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -29,15 +32,49 @@ jobs:
         run: |
           mkdir -p ~/.config
           cp pmbootstrap_v3.cfg ~/.config/
-          sudo apt install kpartx -y
           yes '' | pmbootstrap init || true
         shell: bash
 
       - name: Build image
         id: build
         run: |
-          yes '000' | pmbootstrap install || true
+          yes '${{ env.UserPass }}' | pmbootstrap install || true
           pmbootstrap shutdown
           sudo mv ~/.local/var/pmbootstrap/chroot_rootfs_qcom-msm8953/boot/lk2nd.img ~/lk2nd.img
           sudo mv ~/.local/var/pmbootstrap/chroot_native/home/pmos/rootfs/qcom-msm8953.img ~/qcom-msm8953.img
         shell: bash
+
+      - name: Compress images
+        id: compress
+        run: |
+          zip -9 PMOS.zip lk2nd.img qcom-msm8953.img
+        shell: bash
+
+      - name: Create Release Info
+        run: |
+          DEVICE=$(grep '^device' pmbootstrap_v3.cfg | cut -d'=' -f2 | xargs)
+          UI=$(grep '^ui' pmbootstrap_v3.cfg | cut -d'=' -f2 | xargs)
+          SYSTEMD=$(grep '^systemd' pmbootstrap_v3.cfg | cut -d'=' -f2 | xargs)
+          EXTRAS=$(grep '^extra_packages' pmbootstrap_v3.cfg | cut -d'=' -f2 | xargs | tr ',' ', ')
+
+          {
+            echo "Builded at: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+            echo "Device: $DEVICE"
+            echo "DE: $UI"
+            echo "SystemD: $SYSTEMD"
+            echo "Extra: $EXTRAS"
+            echo "User Password: ${{ env.UserPass }}"
+          } > release_body.txt
+        shell: bash
+
+      - name: Upload Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            PMOS.zip
+          tag_name: PostmarketOS
+          draft: false
+          body_path: release_body.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
