@@ -40,14 +40,12 @@ jobs:
         run: |
           printf '%s\n%s\n' "${{ env.UserPass }}" "${{ env.UserPass }}" | pmbootstrap install || true
           pmbootstrap shutdown
-          sudo mv ~/.local/var/pmbootstrap/chroot_rootfs_qcom-msm8953/boot/lk2nd.img ~/lk2nd.img
-          sudo mv ~/.local/var/pmbootstrap/chroot_native/home/pmos/rootfs/qcom-msm8953.img ~/qcom-msm8953.img
         shell: bash
 
       - name: Compress images
         id: compress
         run: |
-          zip -9 -v PMOS.zip lk2nd.img qcom-msm8953.img
+          sudo zip -9 -v PMOS.zip ~/.local/var/pmbootstrap/chroot_rootfs_qcom-msm8953/boot/lk2nd.img ~/.local/var/pmbootstrap/chroot_native/home/pmos/rootfs/qcom-msm8953.img
         shell: bash
 
       - name: Create Release Info
