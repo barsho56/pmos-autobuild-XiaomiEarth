@@ -88,10 +88,10 @@ jobs:
             echo "Device: $DEVICE"
             echo "SystemD: $SYSTEMD"
             echo "User Password: ${{ env.UserPass }}"
-            echo "-----"
+            echo "_"
             echo "DE: $UI1"
             echo "Extra: $EXTRAS1"
-            echo "-----"
+            echo "_"
             echo "DE: $UI2"
             echo "Extra: $EXTRAS2"
           } > release_body.txt
