@@ -43,6 +43,11 @@ on:
         required: true
         type: string
         default: "147147"
+      gh:
+        description: "Name of GitHub Release:"
+        required: false
+        type: string
+        default: "postmarketOS"
 
 
 permissions:
@@ -91,7 +96,6 @@ jobs:
           sudo chmod 777 lk2nd.img
           sudo chmod 777 rootfs.img
           zip -9 -v "pmOS ${{ github.event.inputs.device }}.zip" lk2nd.img rootfs.img
-          rm ~/.config/pmbootstrap_v3.cfg
           rm *.img
         shell: bash
 
@@ -111,15 +115,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release delete postmarketOS -y || true
-          git push origin --delete postmarketOS || true
+          gh release delete ${{ github.event.inputs.gh }} -y || true
+          git push origin --delete ${{ github.event.inputs.gh }} || true
 
       - name: Upload Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             pmOS*.zip
-          tag_name: postmarketOS
+          tag_name: ${{ github.event.inputs.gh }}
           draft: false
           body_path: release_body.txt
         env:
