@@ -1,17 +1,46 @@
-name: Build
+name: Build you own build!
 
 on:
-  workflow_dispatch: {} # Enables the manual start
+  workflow_dispatch:
+    inputs:
+      device:
+        description: "Select Device:"
+        required: true
+        type: string
+        default: "qcom-msm8953"
+      extras:
+        description: "Select Extra Packages:"
+        required: true
+        type: string
+        default: "flatpak,fastfetch,nano,discover-backend-flatpak,kwalletmanager,firefox,mobile-config-firefox"
+      hostname:
+        description: "Select Hostname:"
+        required: true
+        type: string
+        default: "pmos"
+      systemd:
+        description: "Select Systemd:"
+        required: true
+        type: string
+        default: "never"
+      de:
+        description: "Select Desktop Environment:"
+        required: true
+        type: string
+        default: "plasma-mobile"
+      pass:
+        description: "Select User Password:"
+        required: true
+        type: string
+        default: "000"
+
 
 permissions:
   contents: write # Give permission to put the release into the repo
 
 jobs:
-  build-clients:
+  build-pmos:
     runs-on: ubuntu-latest
-
-    env:
-      UserPass: '000' # It's password for pmos user
 
     steps:
       - name: Checkout code
@@ -26,83 +55,54 @@ jobs:
           pmbootstrap --version
         shell: bash
 
-      - name: Copy config and init pmbootstrap (1)
+      - name: Copy config and init pmbootstrap
         run: |
           mkdir -p ~/.config
-          cp pmbootstrap_1.cfg ~/.config/pmbootstrap_v3.cfg
+          echo "[pmbootstrap]" > ~/.config/pmbootstrap_v3.cfg
+          echo "device = ${{ github.event.inputs.device }}" >> ~/.config/pmbootstrap_v3.cfg
+          echo "extra_packages = ${{ github.event.inputs.extras }}" >> ~/.config/pmbootstrap_v3.cfg
+          echo "hostname = ${{ github.event.inputs.hostname }}" >> ~/.config/pmbootstrap_v3.cfg
+          echo "is_default_channel = False" >> ~/.config/pmbootstrap_v3.cfg
+          echo "systemd = ${{ github.event.inputs.systemd }}" >> ~/.config/pmbootstrap_v3.cfg
+          echo "ui = ${{ github.event.inputs.de }}" >> ~/.config/pmbootstrap_v3.cfg
           yes '' | pmbootstrap init || true
         shell: bash
 
-      - name: Build image (1)
+      - name: Build image
         run: |
-          printf '%s\n%s\n' "${{ env.UserPass }}" "${{ env.UserPass }}" | pmbootstrap install || true
+          printf '%s\n%s\n' "${{ github.event.inputs.pass }}" "${{ github.event.inputs.pass }}" | pmbootstrap install || true
           pmbootstrap shutdown
         shell: bash
 
-      - name: Compress images (1)
+      - name: Compress images
         run: |
-          sudo mv ~/.local/var/pmbootstrap/chroot_rootfs_qcom-msm8953/boot/lk2nd.img lk2nd.img
-          sudo mv ~/.local/var/pmbootstrap/chroot_native/home/pmos/rootfs/qcom-msm8953.img qcom-msm8953.img
+          sudo mv ~/.local/var/pmbootstrap/chroot_rootfs_*/boot/lk2nd.img lk2nd.img
+          sudo mv ~/.local/var/pmbootstrap/chroot_native/home/pmos/rootfs/*.img rootfs.img
           sudo chmod 777 lk2nd.img
-          sudo chmod 777 qcom-msm8953.img
-          zip -9 -v PMOS_PlasmaMobile.zip lk2nd.img qcom-msm8953.img
-          rm ~/.config/pmbootstrap_v3.cfg
-          rm *.img
-        shell: bash
-
-      - name: Copy config and init pmbootstrap (2)
-        run: |
-          mkdir -p ~/.config
-          cp pmbootstrap_2.cfg ~/.config/pmbootstrap_v3.cfg
-          yes '' | pmbootstrap init || true
-        shell: bash
-
-      - name: Build image (2)
-        run: |
-          printf '%s\n%s\n' "${{ env.UserPass }}" "${{ env.UserPass }}" | pmbootstrap install || true
-          pmbootstrap shutdown
-        shell: bash
-
-      - name: Compress images (2)
-        run: |
-          sudo mv ~/.local/var/pmbootstrap/chroot_rootfs_qcom-msm8953/boot/lk2nd.img lk2nd.img
-          sudo mv ~/.local/var/pmbootstrap/chroot_native/home/pmos/rootfs/qcom-msm8953.img qcom-msm8953.img
-          sudo chmod 777 lk2nd.img
-          sudo chmod 777 qcom-msm8953.img
-          zip -9 -v PMOS_Phosh.zip lk2nd.img qcom-msm8953.img
+          sudo chmod 777 rootfs.img
+          zip -9 -v "pmOS ${{ github.event.inputs.device }}.zip" lk2nd.img rootfs.img
           rm ~/.config/pmbootstrap_v3.cfg
           rm *.img
         shell: bash
 
       - name: Create Release Info
         run: |
-          DEVICE=$(grep '^device' pmbootstrap_1.cfg | cut -d'=' -f2 | xargs)
-          SYSTEMD=$(grep '^systemd' pmbootstrap_1.cfg | cut -d'=' -f2 | xargs)
-          UI1=$(grep '^ui' pmbootstrap_1.cfg | cut -d'=' -f2 | xargs)
-          EXTRAS1=$(grep '^extra_packages' pmbootstrap_1.cfg | cut -d'=' -f2 | xargs | tr ',' ', ')
-          UI2=$(grep '^ui' pmbootstrap_2.cfg | cut -d'=' -f2 | xargs)
-          EXTRAS2=$(grep '^extra_packages' pmbootstrap_2.cfg | cut -d'=' -f2 | xargs | tr ',' ', ')
-
-          {
-            echo "Builded at: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
-            echo "Device: $DEVICE"
-            echo "SystemD: $SYSTEMD"
-            echo "User Password: ${{ env.UserPass }}"
-            echo "_"
-            echo "DE: $UI1"
-            echo "Extra: $EXTRAS1"
-            echo "_"
-            echo "DE: $UI2"
-            echo "Extra: $EXTRAS2"
-          } > release_body.txt
+          echo "Builded at: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" > release_body.txt
+          echo "———" >> release_body.txt
+          echo "Device: ${{ github.event.inputs.device }}" >> release_body.txt
+          echo "Extra Packages: ${{ github.event.inputs.extras }}" >> release_body.txt
+          echo "Hostname: ${{ github.event.inputs.hostname }}" >> release_body.txt
+          echo "Systemd = ${{ github.event.inputs.systemd }}" >> release_body.txt
+          echo "Desktop Environment: ${{ github.event.inputs.de }}" >> release_body.txt
+          echo "User Password: ${{ github.event.inputs.pass }}" >> release_body.txt
         shell: bash
 
       - name: Upload Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            PMOS*.zip
-          tag_name: PostmarketOS
+            pmOS*.zip
+          tag_name: postmarketOS
           draft: false
           body_path: release_body.txt
         env:
