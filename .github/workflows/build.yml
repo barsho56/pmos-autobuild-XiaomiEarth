@@ -15,7 +15,7 @@ on:
         default: "flatpak,fastfetch,nano,discover-backend-flatpak,kwalletmanager,firefox,mobile-config-firefox"
       hostname:
         description: "Select Hostname:"
-        required: true
+        required: false
         type: string
         default: "pmos"
       systemd:
@@ -28,11 +28,21 @@ on:
         required: true
         type: string
         default: "plasma-mobile"
+      locale:
+        description: "Select System Locale:"
+        required: false
+        type: string
+        default: "en_US"
+      username:
+        description: "Select pmOS Username:"
+        required: false
+        type: string
+        default: "user"
       pass:
         description: "Select User Password:"
         required: true
         type: string
-        default: "000"
+        default: "147147"
 
 
 permissions:
@@ -55,22 +65,22 @@ jobs:
           pmbootstrap --version
         shell: bash
 
-      - name: Copy config and init pmbootstrap
+      - name: Create config and init pmbootstrap
         run: |
-          mkdir -p ~/.config
-          echo "[pmbootstrap]" > ~/.config/pmbootstrap_v3.cfg
-          echo "device = ${{ github.event.inputs.device }}" >> ~/.config/pmbootstrap_v3.cfg
-          echo "extra_packages = ${{ github.event.inputs.extras }}" >> ~/.config/pmbootstrap_v3.cfg
-          echo "hostname = ${{ github.event.inputs.hostname }}" >> ~/.config/pmbootstrap_v3.cfg
-          echo "is_default_channel = False" >> ~/.config/pmbootstrap_v3.cfg
-          echo "systemd = ${{ github.event.inputs.systemd }}" >> ~/.config/pmbootstrap_v3.cfg
-          echo "ui = ${{ github.event.inputs.de }}" >> ~/.config/pmbootstrap_v3.cfg
+          yes '' | pmbootstrap init || true
+          pmbootstrap config device ${{ github.event.inputs.device }}
+          pmbootstrap config extra_packages ${{ github.event.inputs.extras }}
+          pmbootstrap config hostname ${{ github.event.inputs.hostname }}
+          pmbootstrap config systemd ${{ github.event.inputs.systemd }}
+          pmbootstrap config ui ${{ github.event.inputs.de }}
+          pmbootstrap config user ${{ github.event.inputs.username }}
+          pmbootstrap config locale ${{ github.event.inputs.locale }}
           yes '' | pmbootstrap init || true
         shell: bash
 
       - name: Build image
         run: |
-          printf '%s\n%s\n' "${{ github.event.inputs.pass }}" "${{ github.event.inputs.pass }}" | pmbootstrap install || true
+          pmbootstrap install --password ${{ github.event.inputs.pass }}
           pmbootstrap shutdown
         shell: bash
 
@@ -87,15 +97,22 @@ jobs:
 
       - name: Create Release Info
         run: |
-          echo "Builded at: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" > release_body.txt
-          echo "———" >> release_body.txt
-          echo "Device: ${{ github.event.inputs.device }}" >> release_body.txt
+          echo "Device: ${{ github.event.inputs.device }}" > release_body.txt
           echo "Extra Packages: ${{ github.event.inputs.extras }}" >> release_body.txt
           echo "Hostname: ${{ github.event.inputs.hostname }}" >> release_body.txt
-          echo "Systemd = ${{ github.event.inputs.systemd }}" >> release_body.txt
+          echo "Systemd: ${{ github.event.inputs.systemd }}" >> release_body.txt
           echo "Desktop Environment: ${{ github.event.inputs.de }}" >> release_body.txt
-          echo "User Password: ${{ github.event.inputs.pass }}" >> release_body.txt
+          echo "System language: ${{ github.event.inputs.locale }}" >> release_body.txt
+          echo "Username: ${{ github.event.inputs.username }}" >> release_body.txt
+          echo "### User Password: ${{ github.event.inputs.pass }}" >> release_body.txt
         shell: bash
+
+      - name: Delete prevous Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete postmarketOS -y || true
+          git push origin --delete postmarketOS || true
 
       - name: Upload Release
         uses: softprops/action-gh-release@v2
